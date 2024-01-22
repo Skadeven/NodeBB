@@ -11,7 +11,7 @@ const intFields:string[] = [
 ];
 
 module.exports = function (Posts:any) {
-    Posts.getPostsFields = async function (pids:number[], fields:string[]): Promise<any[]>{
+    Posts.getPostsFields = async function (pids:number[], fields:string[]): any[]{
         if (!Array.isArray(pids) || !pids.length) {
             return [];
         }
@@ -26,30 +26,30 @@ module.exports = function (Posts:any) {
         return result.posts;
     };
 
-    Posts.getPostData = async function (pid): Promise<any | null> {
+    Posts.getPostData = async function (pid): any | null {
         const posts: any[] = await Posts.getPostsFields([pid], []);
         return posts && posts.length ? posts[0] : null;
     };
 
-    Posts.getPostsData = async function (pids:number[]): Promise<any[]> {
+    Posts.getPostsData = async function (pids:number[]): any[] {
         return await Posts.getPostsFields(pids, []);
     };
 
-    Posts.getPostField = async function (pid: number, field: string): Promise<any> {
+    Posts.getPostField = async function (pid: number, field: string): any {
         const post:any = await Posts.getPostFields(pid, [field]);
         return post ? post[field] : null;
     };
 
-    Posts.getPostFields = async function (pid: number, fields: string[]): Promise<any | null> {
+    Posts.getPostFields = async function (pid: number, fields: string[]): any | null {
         const posts: any[] = await Posts.getPostsFields([pid], fields);
         return posts ? posts[0] : null;
     };
 
-    Posts.setPostField = async function (pid: number, field: string, value: any): Promise<void> {
+    Posts.setPostField = async function (pid: number, field: string, value: any):void {
         await Posts.setPostFields(pid, { [field]: value });
     };
 
-    Posts.setPostFields = async function (pid: number, data: any): Promise<void> {
+    Posts.setPostFields = async function (pid: number, data: any): void {
         await db.setObject(`post:${pid}`, data);
         plugins.hooks.fire('action:post.setFields', { data: { ...data, pid } });
     };
