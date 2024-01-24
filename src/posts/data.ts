@@ -1,93 +1,112 @@
+
 import db from '../database';
 import plugins from '../plugins';
 import utils from '../utils';
 
-const intFields:string[] = [
+const intFields: string[] = [
     'uid', 'pid', 'tid', 'deleted', 'timestamp',
     'upvotes', 'downvotes', 'deleterUid', 'edited',
     'replies', 'bookmarks',
 ];
 
-interface Post {
-    uid: number;
-    pid: number;
-    tid: number;
-    deleted: boolean;
-    timestamp: number;
-    upvotes: number;
-    downvotes: number;
-    deleterUid: number;
+interface PostData {
+    deleted?: number;
+    timestamp?: number;
+    upvotes?: number;
+    downvotes?: number;
     edited?: number;
-    replies?: number;
-    bookmarks?: number;
-    votes: number;
+    votes?: number;
     timestampISO?: string;
     editedISO?: string;
-    [key: string]: number | boolean | string | undefined;
+    [key: string]: number | string | boolean | undefined;
 }
 
-interface PostData {
+interface PostResult {
     pids: number[];
-    posts: Post[];
+    posts: PostData[];
     fields: string[];
 }
 
-module.exports = function (Posts:{[key:string]:Function}) {
-    Posts.getPostsFields = async function (pids:number[], fields:string[]): Promise<Post[]>{
-        if (!Array.isArray(pids) || !pids.length) {
-            return [];
-        }
-        const keys: string[] = pids.map(pid => `post:${pid}`);
-        const postData: Post[] = await db.getObjects(keys, fields);
-        const result: PostData = await plugins.hooks.fire('filter:post.getFields', {
-            pids: pids,
-            posts: postData,
-            fields: fields,
-        });
-        result.posts.forEach((post:Post) => modifyPost(post, fields));
-        return result.posts;
-    };
+interface PostsFunctions {
+    getPostsFields: (pids: number[], fields: string[]) => Promise<PostData[]>;
+    getPostData: (pid: number) => Promise<PostData | null>;
+    getPostsData: (pids: number[]) => Promise<PostData[]>;
+    getPostField: (pid: number, field: string) => Promise<number | string | boolean | null>;
+    getPostFields: (pid: number, fields: string[]) => Promise<PostData | null>;
+    setPostField: (pid: number, field: string, value: string | number | boolean) => Promise<void>;
+    setPostFields: (pid: number, data: PostData) => Promise<void>;
+}
 
-    Posts.getPostData = async function (pid:number): Promise<Post | null> {
-        const posts: Post[] = await Posts.getPostsFields([pid], []);
-        return posts && posts.length ? posts[0] : null;
-    };
-
-    Posts.getPostsData = async function (pids:number[]): Promise<Post[]> {
-        return await Posts.getPostsFields(pids, []);
-    };
-
-    Posts.getPostField = async function (pid: number, field: string): Promise<number | boolean | string | undefined> {
-        const post:Post = await Posts.getPostFields(pid, [field]);
-        return post ? post[field] : null;
-    };
-
-    Posts.getPostFields = async function (pid: number, fields: string[]): Promise<Post | null> {
-        const posts: Post[] = await Posts.getPostsFields([pid], fields);
-        return posts ? posts[0] : null;
-    };
-
-    Posts.setPostField = async function (pid: number, field: string, value: number):Promise<void> {
-        await Posts.setPostFields(pid, { [field]: value });
-    };
-
-    Posts.setPostFields = async function (pid: number, data: Partial<Post>): Promise<void> {
-        await db.setObject(`post:${pid}`, data);
-        plugins.hooks.fire('action:post.setFields', { data: { ...data, pid } });
-    };
-};
-
-function modifyPost(post: Post, fields: string[]):void {
+function modifyPost(post: PostData, fields: string[]): void {
     if (post) {
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
         db.parseIntFields(post, intFields, fields);
         if (post.hasOwnProperty('upvotes') && post.hasOwnProperty('downvotes')) {
             post.votes = post.upvotes - post.downvotes;
         }
         if (post.hasOwnProperty('timestamp')) {
-            post.timestampISO = utils.toISOString(post.timestamp);
+            // The next line calls a function in a module that has not been updated to TS yet
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+            post.timestampISO = utils.toISOString(post.timestamp) as string;
         }
         if (post.hasOwnProperty('edited')) {
-            post.editedISO = post.edited !== 0 ? utils.toISOString(post.edited) : '';
+            // The next line calls a function in a module that has not been updated to TS yet
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+            post.editedISO = (post.edited !== 0 ? utils.toISOString(post.edited) : '') as string;
         }
     }
 }
+
+export = function (Posts: PostsFunctions) {
+    Posts.getPostsFields = async function (pids: number[], fields: string[]): Promise<PostData[]> {
+        if (!Array.isArray(pids) || !pids.length) {
+            return [];
+        }
+        const keys = pids.map(pid => `post:${pid}`);
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        const postData: PostData[] = await db.getObjects(keys, fields) as PostData[];
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        const result: PostResult = await plugins.hooks.fire('filter:post.getFields', {
+            pids: pids,
+            posts: postData,
+            fields: fields,
+        }) as PostResult;
+        result.posts.forEach((post: PostData) => modifyPost(post, fields));
+        return result.posts;
+    };
+
+    Posts.getPostData = async function (pid: number): Promise<PostData | null> {
+        const posts = await Posts.getPostsFields([pid], []);
+        return posts && posts.length ? posts[0] : null;
+    };
+
+    Posts.getPostsData = async function (pids: number[]): Promise<PostData[]> {
+        return Posts.getPostsFields(pids, []);
+    };
+
+    Posts.getPostField = async function (pid: number, field: string): Promise<number | string | boolean | null> {
+        const post: PostData = await Posts.getPostFields(pid, [field]);
+        return post ? post[field] : null;
+    };
+
+    Posts.getPostFields = async function (pid: number, fields: string[]): Promise<PostData | null> {
+        const posts: PostData[] = await Posts.getPostsFields([pid], fields);
+        return posts && posts.length ? posts[0] : null;
+    };
+
+    Posts.setPostField = async function (pid: number, field: string, value: string | number | boolean): Promise<void> {
+        await Posts.setPostFields(pid, { [field]: value });
+    };
+    Posts.setPostFields = async function (pid: number, data: PostData): Promise<void> {
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        await db.setObject(`post:${pid}`, data);
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        await plugins.hooks.fire('action:post.setFields', { data: { ...data, pid } });
+    };
+}
+
