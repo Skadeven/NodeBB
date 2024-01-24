@@ -83,7 +83,7 @@ export = function (Posts: PostsFunctions) {
         return posts && posts.length ? posts[0] : null;
     };
 
-    
+
     Posts.getPostsData = async function (pids: number[]): Promise<PostData[]> {
         return Posts.getPostsFields(pids, []);
     };
