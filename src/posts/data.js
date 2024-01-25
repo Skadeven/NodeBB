@@ -74,13 +74,13 @@ module.exports = function (Posts) {
     Posts.getPostField = function (pid, field) {
         return __awaiter(this, void 0, void 0, function* () {
             const post = yield Posts.getPostFields(pid, [field]);
-            return post ? post[field] : null;
+            return (post ? post[field] : null);
         });
     };
     Posts.getPostFields = function (pid, fields) {
         return __awaiter(this, void 0, void 0, function* () {
             const posts = yield Posts.getPostsFields([pid], fields);
-            return posts && posts.length ? posts[0] : null;
+            return posts ? posts[0] : null;
         });
     };
     Posts.setPostField = function (pid, field, value) {
